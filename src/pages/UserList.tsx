@@ -38,29 +38,39 @@ export function UserList() {
     setDeleteModal({ isOpen: true, user });
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!deleteModal.user) return;
+const handleDeleteConfirm = async () => {
+  if (!deleteModal.user) return;
 
-    const result = await deleteUser(deleteModal.user.id);
-    
-    if (result.success) {
-      setToast({ message: 'User deleted successfully', type: 'success' });
-      // Refresh the current page, or go to previous page if current page is now empty
-      const currentPage = state.pagination.currentPage;
-      const newTotal = state.pagination.total - 1;
-      const newTotalPages = Math.ceil(newTotal / state.pagination.limit);
-      
-      if (currentPage > newTotalPages && newTotalPages > 0) {
-        fetchUsers(newTotalPages, state.pagination.limit);
-      } else {
-        fetchUsers(currentPage, state.pagination.limit);
-      }
-    } else {
-      setToast({ message: result.message || 'Failed to delete user', type: 'error' });
+  const result = await deleteUser(deleteModal.user.id);
+
+  if (result.success) {
+    setToast({ message: "User deleted successfully", type: "success" });
+
+    const currentPage = state.pagination.currentPage;
+    const limit = state.pagination.limit;
+    const newTotal = state.pagination.total - 1;
+    const newTotalPages = Math.ceil(newTotal / limit);
+
+    // Decide what page to fetch after deletion
+    let targetPage = currentPage;
+
+    if (newTotal === 0) {
+      targetPage = 1;
+    } else if (currentPage > newTotalPages) {
+      targetPage = newTotalPages;
     }
 
-    setDeleteModal({ isOpen: false, user: null });
-  };
+    fetchUsers(targetPage, limit);
+  } else {
+    setToast({
+      message: result.message || "Failed to delete user",
+      type: "error",
+    });
+  }
+
+  setDeleteModal({ isOpen: false, user: null });
+};
+
 
   const filteredUsers = Array.isArray(state.users)
     ? state.users.filter(
@@ -68,7 +78,7 @@ export function UserList() {
           `${user.firstName} ${user.lastName}`
             .toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          user.residence.toLowerCase().includes(searchTerm.toLowerCase())
+          user.residence?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : [];
 
